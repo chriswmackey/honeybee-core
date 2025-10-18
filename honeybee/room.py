@@ -71,6 +71,16 @@ class Room(_BaseWithShade):
         * center
         * min
         * max
+        * roof_to_exterior_edges
+        * slab_to_exterior_edges
+        * exposed_floor_to_exterior_wall_edges
+        * exterior_wall_to_wall_edges
+        * roof_ridge_edges
+        * exposed_floor_to_floor_edges
+        * underground_edges
+        * interior_edges
+        * exterior_aperture_edges
+        * exterior_door_edges
         * volume
         * floor_area
         * exposed_area
@@ -429,6 +439,128 @@ class Room(_BaseWithShade):
         all_geo = self._outdoor_shades + self._indoor_shades
         all_geo.extend(self._faces)
         return self._calculate_max(all_geo)
+
+    @property
+    def roof_to_exterior_edges(self):
+        """Get a LineSegment3Ds where roofs meet exterior walls (or floors).
+
+        Note that both the roof Face and the wall/floor Face must be next to one
+        another in the room volume and have outdoor boundary conditions for
+        the edge to show up in this list.
+        """
+        return self.classify_edges()[0]
+
+    @property
+    def slab_to_exterior_edges(self):
+        """Get LineSegment3Ds where ground floor slabs meet exterior walls or roofs.
+
+        Note that the floor Face must have a ground boundary condition and the wall or
+        roof Face must have an outdoor boundary condition for the edge between the
+        two Faces to show up in this list.
+        """
+        return self.classify_edges()[1]
+
+    @property
+    def exposed_floor_to_exterior_wall_edges(self):
+        """Get LineSegment3Ds where exposed floors meet exterior walls.
+
+        Note that both the wall Face and the floor Face must be next to one
+        another in the room volume and have outdoor boundary conditions for
+        the edge to show up in this list.
+        """
+        return self.classify_edges()[2]
+
+    @property
+    def exterior_wall_to_wall_edges(self):
+        """Get LineSegment3Ds where exterior walls meet one another.
+
+        Note that both wall Faces must be next to one another in the room volume
+        and have outdoor boundary conditions for the edge to show up in this list.
+        """
+        return self.classify_edges()[3]
+
+    @property
+    def roof_ridge_edges(self):
+        """Get a list of LineSegment3D where exterior roofs meet one another.
+
+        Note that both roof Faces must be next to one another in the room volume
+        and have outdoor boundary conditions for the edge to show up in this list.
+        """
+        return self.classify_edges()[4]
+
+    @property
+    def exposed_floor_to_floor_edges(self):
+        """Get LineSegment3Ds where exposed floors meet one another.
+
+        Note that both floor Faces must be next to one another in the room volume
+        and have outdoor boundary conditions for the edge to show up in this list.
+        """
+        return self.classify_edges()[5]
+
+    @property
+    def underground_edges(self):
+        """Get a list of LineSegment3D where underground Faces meet one another.
+
+        Note that both Faces must be next to one another in the room volume
+        and have ground boundary conditions for the edge to show up in this list.
+        """
+        return self.classify_edges()[6]
+
+    @property
+    def interior_edges(self):
+        """Get a list of LineSegment3D where interior Faces meet one another.
+
+        Note that both Faces must be next to one another in the room volume
+        and have boundary conditions other than outdoors or ground for the
+        edge to show up in this list.
+        """
+        return self.classify_edges()[7]
+
+    def classify_edges(self):
+        """Classify the edges of this Room's Polyface3D based on Faces they adjoin.
+
+        Returns:
+            A tuple with eight items where each item is a list containing
+            LineSegment3D adjoining different types of Faces.
+
+            -   roof_to_exterior - Roofs meet exterior walls or floors.
+
+            -   slab_to_exterior - Ground floor slabs meet exterior walls or roofs.
+
+            -   exposed_floor_to_exterior_wall - Exposed floors meet exterior walls.
+
+            -   exterior_wall_to_wall - Exterior walls meet.
+
+            -   roof_ridge - Exterior roofs meet.
+
+            -   exposed_floor_to_floor - Exposed floors meet.
+
+            -   underground - Underground faces meet.
+
+            -   interior - Interior faces meet.
+        """
+        # set up lists to be populated
+        roof_to_exterior, slab_to_exterior, exposed_floor_to_exterior_wall = [], [], []
+        exterior_wall_to_wall, roof_ridge, exposed_floor_to_floor = [], [], []
+        underground, interior_edges = [], []
+
+    @property
+    def exterior_aperture_edges(self):
+        """Get a list of LineSegment3D for the borders around exterior apertures."""
+        edges = []
+        for ap in self.apertures:
+            if isinstance(ap.boundary_condition, Outdoors):
+                edges.extend(ap.geometry.segments)
+        return edges
+
+    @property
+    def exterior_door_edges(self):
+        """Get a list of LineSegment3D for the borders around exterior doors."""
+        edges = []
+        for dr in self.doors:
+            if isinstance(dr.boundary_condition, Outdoors):
+                edges.extend(dr.geometry.segments)
+        return edges
 
     @property
     def volume(self):
